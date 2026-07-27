@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Uploads
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# MongoDB data
+/data/
+dump/
+
+# Temporary files
+tmp/
+temp/
+coverage/
