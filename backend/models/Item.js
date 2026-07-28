@@ -35,6 +35,13 @@ const ItemSchema = new mongoose.Schema({
   },
   image: {
     type: String,
+    default: null,
+  },
+  imageData: {
+    type: Buffer,  // This stores the actual image in Atlas
+  },
+  imageType: {
+    type: String,  // Stores image mime type
   },
   reportedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -55,7 +62,6 @@ const ItemSchema = new mongoose.Schema({
   },
 });
 
-// Auto-generate item ID before saving
 ItemSchema.pre('save', function(next) {
   if (!this.itemId) {
     this.itemId = `RCH-${Date.now().toString().slice(-6)}`;

@@ -9,10 +9,10 @@ router.post('/register', async (req, res) => {
   try {
     const { name, email, studentId, password, phone } = req.body;
 
-    // Validate email domain - must end with @students.cavendish.ac.ug
-    if (!email.endsWith('@students.cavendish.ac.ug')) {
+    // Validate email domain - allow admin or students
+    if (email !== 'admin@cavendish.ac.ug' && !email.endsWith('@students.cavendish.ac.ug')) {
       return res.status(400).json({ 
-        message: 'Please use a @students.cavendish.ac.ug email address' 
+        message: 'Please use a @students.cavendish.ac.ug email address or admin@cavendish.ac.ug' 
       });
     }
 
@@ -31,7 +31,7 @@ router.post('/register', async (req, res) => {
       studentId,
       password,
       phone,
-      role: 'student',
+      role: email === 'admin@cavendish.ac.ug' ? 'admin' : 'student',
     });
 
     // Generate token

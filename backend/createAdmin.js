@@ -9,12 +9,13 @@ async function createAdmin() {
     const adminExists = await User.findOne({ email: 'admin@cavendish.ac.ug' });
     if (adminExists) {
       console.log('⚠️ Admin already exists');
-      console.log('Email: admin@cavendish.ac.ug');
+      console.log('📧 Email: admin@cavendish.ac.ug');
+      console.log('🔑 Password: admin123');
       process.exit();
     }
 
     const admin = await User.create({
-      name: 'System Admin',
+      name: 'Admin Cavendish',
       email: 'admin@cavendish.ac.ug',
       studentId: 'ADMIN001',
       password: 'admin123',

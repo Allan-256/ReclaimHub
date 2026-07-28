@@ -12,7 +12,14 @@ const UserSchema = new mongoose.Schema({
     required: [true, 'Please provide your email'],
     unique: true,
     lowercase: true,
-    match: [/^[^\s@]+@students\.cavendish\.ac\.ug$/, 'Please use a valid @students.cavendish.ac.ug email'],
+    validate: {
+      validator: function(email) {
+        // Allow admin email or student email
+        if (email === 'admin@cavendish.ac.ug') return true;
+        return /^[^\s@]+@students\.cavendish\.ac\.ug$/.test(email);
+      },
+      message: 'Please use a valid @students.cavendish.ac.ug email or admin@cavendish.ac.ug'
+    }
   },
   studentId: {
     type: String,
