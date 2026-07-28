@@ -13,8 +13,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files for uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// IMPORTANT: Serve static files from frontend build
+app.use(express.static(path.join(__dirname, '../frontend/build')));
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -22,20 +22,20 @@ const itemRoutes = require('./routes/itemRoutes');
 const claimRoutes = require('./routes/claimRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
-// Use routes
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/claims', claimRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Root route
-app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to ReclaimHub API 🏠' });
-});
-
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ReclaimHub API is running' });
+});
+
+// IMPORTANT: All non-API routes go to React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
 });
 
 // Error handling middleware
