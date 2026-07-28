@@ -3,10 +3,7 @@ node_modules/
 *.log
 .env
 .DS_Store
-Thumbs.db
-backend/uploads/
 frontend/node_modules/
 frontend/src/
 frontend/public/
-frontend/package-lock.json
-backend/package-lock.json
+backend/node_modules/
