@@ -4,8 +4,8 @@ node_modules/
 .env
 .DS_Store
 Thumbs.db
-*.md
-.gitignore
 backend/uploads/
 frontend/node_modules/
-frontend/build/
+frontend/src/
+frontend/public/
+frontend/package-lock.json

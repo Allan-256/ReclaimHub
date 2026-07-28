@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// IMPORTANT: Serve static files from frontend build
+// Serve static files from frontend build
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
 // Import routes
@@ -33,12 +33,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ReclaimHub API is running' });
 });
 
-// IMPORTANT: All non-API routes go to React app
+// All non-API routes go to React app
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
 });
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
@@ -53,3 +53,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+module.exports = app;
