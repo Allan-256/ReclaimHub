@@ -15,7 +15,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from frontend build
 const frontendPath = path.join(__dirname, '../frontend/build');
-console.log('📁 Serving frontend from:', frontendPath);
 app.use(express.static(frontendPath));
 
 // Import routes
@@ -35,11 +34,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ReclaimHub API is running!' });
 });
 
-// Root route - serves frontend
-app.get('/', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
-});
-
 // All non-API routes go to React app
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
@@ -52,14 +46,9 @@ app.use((err, req, res, next) => {
 });
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI;
-if (!MONGODB_URI) {
-  console.error('❌ MONGODB_URI is not defined');
-} else {
-  mongoose.connect(MONGODB_URI)
-    .then(() => console.log('✅ MongoDB connected'))
-    .catch(err => console.error('❌ MongoDB error:', err.message));
-}
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB error:', err.message));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
