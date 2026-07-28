@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 
 dotenv.config();
 
@@ -13,8 +14,17 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Get absolute path to frontend build
+const frontendBuildPath = path.resolve(__dirname, '../frontend/build');
+console.log('📁 Frontend build path:', frontendBuildPath);
+
+// Check if index.html exists
+const indexPath = path.join(frontendBuildPath, 'index.html');
+console.log('📄 Index.html path:', indexPath);
+console.log('📄 Index.html exists?', fs.existsSync(indexPath));
+
 // Serve static files from frontend build
-app.use(express.static(path.join(__dirname, '../frontend/build')));
+app.use(express.static(frontendBuildPath));
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -35,12 +45,13 @@ app.get('/api/health', (req, res) => {
 
 // All non-API routes go to React app
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  console.log('📄 Serving index.html for:', req.url);
+  res.sendFile(indexPath);
 });
 
 // Error handling
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('❌ Error:', err.stack);
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
