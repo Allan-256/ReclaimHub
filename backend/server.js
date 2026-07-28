@@ -2,7 +2,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const path = require('path');
 
 dotenv.config();
 
@@ -12,9 +11,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve static files from frontend build
-app.use(express.static(path.join(__dirname, '../frontend/build')));
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -33,9 +29,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ReclaimHub API is running!' });
 });
 
-// All non-API routes go to React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+// Root route
+app.get('/', (req, res) => {
+  res.json({ message: 'ReclaimHub API is running!' });
 });
 
 // Error handling
@@ -44,15 +40,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
-// MongoDB connection with better options
+// MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
   console.error('❌ MONGODB_URI is not defined in environment variables');
 } else {
-  mongoose.connect(MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-  })
+  mongoose.connect(MONGODB_URI)
     .then(() => console.log('✅ MongoDB connected successfully'))
     .catch(err => console.error('❌ MongoDB connection error:', err.message));
 }
@@ -62,4 +55,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
 
+// ✅ IMPORTANT: Export for Vercel
 module.exports = app;
