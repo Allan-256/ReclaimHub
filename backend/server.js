@@ -13,9 +13,6 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static files from frontend build
-app.use(express.static(path.join(__dirname, '../frontend/build')));
-
 // API Routes
 const authRoutes = require('./routes/auth');
 const itemRoutes = require('./routes/items');
@@ -36,9 +33,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });
 
+// Serve static files from frontend build
+const frontendPath = path.join(__dirname, '../frontend/build');
+console.log('Frontend path:', frontendPath);
+app.use(express.static(frontendPath));
+
 // Serve frontend for any other route
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 app.use((err, req, res, next) => {
