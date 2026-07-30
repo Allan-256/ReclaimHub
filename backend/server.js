@@ -13,46 +13,42 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from frontend build
-const frontendPath = path.join(__dirname, '../frontend/build');
-app.use(express.static(frontendPath));
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Import routes
-const authRoutes = require('./routes/authRoutes');
-const itemRoutes = require('./routes/itemRoutes');
-const claimRoutes = require('./routes/claimRoutes');
-const adminRoutes = require('./routes/adminRoutes');
+const authRoutes = require('./routes/auth');
+const itemRoutes = require('./routes/items');
+const claimRoutes = require('./routes/claims');
+const userRoutes = require('./routes/users');
+const notificationRoutes = require('./routes/notifications');
+const statsRoutes = require('./routes/stats');
 
-// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/claims', claimRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/stats', statsRoutes);
 
-// Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'ReclaimHub API is running!' });
+  res.json({ status: 'OK', message: 'Server is running' });
 });
 
-// All non-API routes go to React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
-});
-
-// Error handling
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
-  res.status(500).json({ message: 'Something went wrong!', error: err.message });
+  res.status(500).json({ message: err.message || 'Server error' });
 });
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB error:', err.message));
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/reclaimhub';
+
+mongoose.connect(MONGODB_URI)
+.then(() => console.log('✅ MongoDB connected'))
+.catch((err) => {
+  console.error('❌ MongoDB connection error:', err.message);
+  process.exit(1);
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
-
-module.exports = app;
