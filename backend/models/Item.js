@@ -1,72 +1,90 @@
 const mongoose = require('mongoose');
 
 const ItemSchema = new mongoose.Schema({
-  itemId: {
-    type: String,
-    unique: true,
-  },
   title: {
     type: String,
-    required: [true, 'Please provide a title'],
-    trim: true,
+    required: true,
   },
   description: {
     type: String,
-    required: [true, 'Please provide a description'],
+    required: true,
   },
   category: {
     type: String,
-    required: true,
     enum: ['Electronics', 'Books', 'Clothing', 'Accessories', 'Documents', 'Other'],
+    default: 'Other',
   },
   location: {
     type: String,
-    required: [true, 'Please provide a location'],
+    required: true,
+  },
+  dateLost: {
+    type: Date,
   },
   dateFound: {
     type: Date,
-    required: true,
-    default: Date.now,
   },
   status: {
     type: String,
     enum: ['lost', 'found', 'claimed'],
     default: 'lost',
   },
-  image: {
-    type: String,
-    default: null,
-  },
   imageData: {
-    type: Buffer,  // This stores the actual image in Atlas
+    type: String,
+    default: '',
   },
-  imageType: {
-    type: String,  // Stores image mime type
+  imageUrl: {
+    type: String,
+    default: '',
+  },
+  itemId: {
+    type: String,
+    unique: true,
   },
   reportedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
   },
-  claimedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  serialNumber: {
+    type: String,
+    default: '',
+  },
+  make: {
+    type: String,
+    default: '',
+  },
+  model: {
+    type: String,
+    default: '',
+  },
+  type: {
+    type: String,
+    default: '',
+  },
+  resolution: {
+    type: String,
+    default: '',
+  },
+  color: {
+    type: String,
+    default: '',
+  },
+  imeiNumber: {
+    type: String,
+    default: '',
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
 });
 
+// Generate item ID before saving
 ItemSchema.pre('save', function(next) {
   if (!this.itemId) {
-    this.itemId = `RCH-${Date.now().toString().slice(-6)}`;
+    this.itemId = 'RCH-' + Math.floor(Math.random() * 900000 + 100000);
   }
-  this.updatedAt = Date.now();
   next();
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Moon, Sun, Package, Home, BarChart3, Settings, LogOut, Users, FileText, AlertCircle, CheckCircle, Award, Clock, TrendingUp, TrendingDown, Search, Edit, Trash2, X, Save, Plus, Send, MessageCircle, Eye } from 'lucide-react';
 import Charts from './components/Charts';
 
@@ -6,7 +6,6 @@ function AdminDashboard({ user, onLogout }) {
   const [items, setItems] = useState([]);
   const [claims, setClaims] = useState([]);
   const [users, setUsers] = useState([]);
-  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -16,7 +15,6 @@ function AdminDashboard({ user, onLogout }) {
   const [usersLoading, setUsersLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   
-  // Post Item Form
   const [showPostForm, setShowPostForm] = useState(false);
   const [postType, setPostType] = useState('found');
   const [postData, setPostData] = useState({
@@ -34,10 +32,10 @@ function AdminDashboard({ user, onLogout }) {
     imeiNumber: '',
   });
   const [postImage, setPostImage] = useState(null);
+  const [postImageData, setPostImageData] = useState('');
   const [imagePreview, setImagePreview] = useState(null);
   const [posting, setPosting] = useState(false);
 
-  // Reply Modal
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState(null);
   const [replyMessage, setReplyMessage] = useState('');
@@ -65,7 +63,7 @@ function AdminDashboard({ user, onLogout }) {
     totalClaims: 0
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -79,7 +77,6 @@ function AdminDashboard({ user, onLogout }) {
       const statsResponse = await fetch('/api/stats');
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
-        setStats(statsData.stats || {});
         setAdminStats(statsData.stats || {});
       }
       
@@ -99,13 +96,13 @@ function AdminDashboard({ user, onLogout }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setUsersLoading(true);
       const token = localStorage.getItem('token');
@@ -128,9 +125,22 @@ function AdminDashboard({ user, onLogout }) {
     } finally {
       setUsersLoading(false);
     }
+  }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPostImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        const base64 = reader.result.split(',')[1];
+        setPostImageData(base64);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  // Handle posting item
   const handlePostItem = async (e) => {
     e.preventDefault();
     setPosting(true);
@@ -138,37 +148,37 @@ function AdminDashboard({ user, onLogout }) {
 
     try {
       const token = localStorage.getItem('token');
-      const formData = new FormData();
       
-      formData.append('title', postData.title);
-      formData.append('description', postData.description);
-      formData.append('category', postData.category);
-      formData.append('location', postData.location);
-      formData.append('status', postType);
-      formData.append('serialNumber', postData.serialNumber);
-      formData.append('make', postData.make);
-      formData.append('model', postData.model);
-      formData.append('type', postData.type);
-      formData.append('resolution', postData.resolution);
-      formData.append('color', postData.color);
-      formData.append('imeiNumber', postData.imeiNumber);
-      
+      const submitData = {
+        title: postData.title,
+        description: postData.description,
+        category: postData.category,
+        location: postData.location,
+        status: postType,
+        serialNumber: postData.serialNumber || '',
+        make: postData.make || '',
+        model: postData.model || '',
+        type: postData.type || '',
+        resolution: postData.resolution || '',
+        color: postData.color || '',
+        imeiNumber: postData.imeiNumber || '',
+        imageData: postImageData || '',
+      };
+
       if (postType === 'found') {
-        formData.append('dateFound', postData.dateFound);
-      }
-      
-      if (postImage) {
-        formData.append('image', postImage);
+        submitData.dateFound = postData.dateFound;
       }
 
       const response = await fetch('/api/items', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: formData,
+        body: JSON.stringify(submitData),
       });
 
+      const data = await response.json();
       if (response.ok) {
         setMessage(`✅ ${postType === 'found' ? 'Found' : 'Lost'} item posted successfully!`);
         setShowPostForm(false);
@@ -187,11 +197,11 @@ function AdminDashboard({ user, onLogout }) {
           imeiNumber: '',
         });
         setPostImage(null);
+        setPostImageData('');
         setImagePreview(null);
         loadData();
         setTimeout(() => setMessage(''), 3000);
       } else {
-        const data = await response.json();
         setMessage('❌ ' + (data.message || 'Failed to post item'));
         setTimeout(() => setMessage(''), 3000);
       }
@@ -200,18 +210,6 @@ function AdminDashboard({ user, onLogout }) {
       setTimeout(() => setMessage(''), 3000);
     } finally {
       setPosting(false);
-    }
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPostImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -289,7 +287,6 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
-  // Handle claim approval/rejection with reply
   const handleClaimAction = async (action) => {
     if (!replyMessage.trim()) {
       setMessage('❌ Please enter a response message');
@@ -350,6 +347,13 @@ function AdminDashboard({ user, onLogout }) {
     accentColor: '#4fc3f7',
     claimedBg: isDarkMode ? 'rgba(81,207,102,0.15)' : 'rgba(81,207,102,0.1)',
     claimedBorder: '#51cf66',
+  };
+
+  const getImageSrc = (item) => {
+    if (item.imageData) {
+      return `data:image/jpeg;base64,${item.imageData}`;
+    }
+    return null;
   };
 
   if (loading) {
@@ -448,7 +452,6 @@ function AdminDashboard({ user, onLogout }) {
   const foundItems = items.filter(item => item.status === 'found');
   const pendingClaims = claims.filter(claim => claim.status === 'pending');
 
-  // Image Modal
   if (selectedImage) {
     return (
       <div style={{
@@ -1594,6 +1597,7 @@ function AdminDashboard({ user, onLogout }) {
               ) : (
                 items.map((item) => {
                   const isClaimed = item.status === 'claimed';
+                  const imageSrc = getImageSrc(item);
                   return (
                     <div key={item._id} style={{
                       background: isClaimed ? theme.claimedBg : 'rgba(255,255,255,0.03)',
@@ -1610,15 +1614,15 @@ function AdminDashboard({ user, onLogout }) {
                       e.target.style.transform = 'translateY(0)';
                       e.target.style.boxShadow = 'none';
                     }}>
-                      {item.imageUrl ? (
+                      {imageSrc ? (
                         <div 
                           style={{
                             height: '200px',
-                            background: 'url(' + item.imageUrl + ') center/cover',
+                            background: `url(${imageSrc}) center/cover`,
                             cursor: 'pointer',
                             position: 'relative',
                           }}
-                          onClick={() => setSelectedImage(item.imageUrl)}
+                          onClick={() => setSelectedImage(imageSrc)}
                         >
                           <div style={{
                             position: 'absolute',
@@ -1628,13 +1632,30 @@ function AdminDashboard({ user, onLogout }) {
                             borderRadius: '12px',
                             background: item.status === 'lost' ? 'rgba(255,107,107,0.9)' : 
                                        item.status === 'found' ? 'rgba(81,207,102,0.9)' : 
-                                       'rgba(255,217,61,0.9)',
+                                       'rgba(81,207,102,0.9)',
                             color: 'white',
                             fontSize: '11px',
                             fontWeight: '600',
                           }}>
                             {item.status.toUpperCase()}
+                            {isClaimed && ' ✓'}
                           </div>
+                          {isClaimed && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '10px',
+                              left: '10px',
+                              padding: '4px 12px',
+                              borderRadius: '12px',
+                              background: 'rgba(81,207,102,0.9)',
+                              color: 'white',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                            }}>
+                              <CheckCircle size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                              Claimed
+                            </div>
+                          )}
                           <div style={{
                             position: 'absolute',
                             bottom: '10px',
@@ -1650,21 +1671,6 @@ function AdminDashboard({ user, onLogout }) {
                           }}>
                             <Eye size={14} /> View
                           </div>
-                          {isClaimed && (
-                            <div style={{
-                              position: 'absolute',
-                              top: '10px',
-                              left: '10px',
-                              padding: '4px 12px',
-                              borderRadius: '12px',
-                              background: 'rgba(81,207,102,0.9)',
-                              color: 'white',
-                              fontSize: '11px',
-                              fontWeight: '600',
-                            }}>
-                              ✓ Claimed
-                            </div>
-                          )}
                         </div>
                       ) : (
                         <div style={{
@@ -1699,13 +1705,14 @@ function AdminDashboard({ user, onLogout }) {
                             fontSize: '11px',
                             fontWeight: '600',
                             background: item.status === 'lost' ? '#ff6b6b20' : 
-                                       item.status === 'found' ? '#51cf6620' : '#ffd93d20',
+                                       item.status === 'found' ? '#51cf6620' : '#51cf6620',
                             color: item.status === 'lost' ? '#ff6b6b' : 
-                                  item.status === 'found' ? '#51cf66' : '#ffd93d',
+                                  item.status === 'found' ? '#51cf66' : '#51cf66',
                             border: '1px solid ' + (item.status === 'lost' ? '#ff6b6b40' : 
-                                  item.status === 'found' ? '#51cf6640' : '#ffd93d40'),
+                                  item.status === 'found' ? '#51cf6640' : '#51cf6640'),
                           }}>
                             {item.status.toUpperCase()}
+                            {isClaimed && ' ✓'}
                           </span>
                           {item.category && (
                             <span style={{

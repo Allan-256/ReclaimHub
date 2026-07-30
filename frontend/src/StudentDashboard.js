@@ -15,7 +15,6 @@ function StudentDashboard({ user, onLogout }) {
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [message, setMessage] = useState('');
   
   const [profile, setProfile] = useState({
     name: user?.name || '',
@@ -45,6 +44,7 @@ function StudentDashboard({ user, onLogout }) {
     color: '',
     imeiNumber: '',
     image: null,
+    imageData: '',
   });
   const [imagePreview, setImagePreview] = useState(null);
 
@@ -84,6 +84,8 @@ function StudentDashboard({ user, onLogout }) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
+        const base64 = reader.result.split(',')[1];
+        setReportData(prev => ({ ...prev, imageData: base64 }));
       };
       reader.readAsDataURL(file);
     }
@@ -95,31 +97,32 @@ function StudentDashboard({ user, onLogout }) {
     setReportMessage('');
 
     try {
-      const formData = new FormData();
-      formData.append('title', reportData.title);
-      formData.append('description', reportData.description);
-      formData.append('category', reportData.category);
-      formData.append('location', reportData.location);
-      formData.append('dateLost', reportData.dateLost);
-      formData.append('serialNumber', reportData.serialNumber);
-      formData.append('make', reportData.make);
-      formData.append('model', reportData.model);
-      formData.append('type', reportData.type);
-      formData.append('resolution', reportData.resolution);
-      formData.append('color', reportData.color);
-      formData.append('imeiNumber', reportData.imeiNumber);
-      formData.append('status', 'lost');
-      if (reportData.image) {
-        formData.append('image', reportData.image);
-      }
-
       const token = localStorage.getItem('token');
+      
+      const submitData = {
+        title: reportData.title,
+        description: reportData.description,
+        category: reportData.category,
+        location: reportData.location,
+        dateLost: reportData.dateLost,
+        serialNumber: reportData.serialNumber || '',
+        make: reportData.make || '',
+        model: reportData.model || '',
+        type: reportData.type || '',
+        resolution: reportData.resolution || '',
+        color: reportData.color || '',
+        imeiNumber: reportData.imeiNumber || '',
+        status: 'lost',
+        imageData: reportData.imageData || '',
+      };
+
       const response = await fetch('/api/items', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: formData,
+        body: JSON.stringify(submitData),
       });
 
       const data = await response.json();
@@ -140,6 +143,7 @@ function StudentDashboard({ user, onLogout }) {
           color: '',
           imeiNumber: '',
           image: null,
+          imageData: '',
         });
         setImagePreview(null);
         loadData();
@@ -373,7 +377,13 @@ function StudentDashboard({ user, onLogout }) {
   const foundItems = items.filter(item => item.status === 'found');
   const claimedItems = items.filter(item => item.status === 'claimed');
 
-  // Check if an item is already claimed
+  const getImageSrc = (item) => {
+    if (item.imageData) {
+      return `data:image/jpeg;base64,${item.imageData}`;
+    }
+    return null;
+  };
+
   const isItemClaimed = (item) => {
     return item.status === 'claimed';
   };
@@ -1011,100 +1021,103 @@ function StudentDashboard({ user, onLogout }) {
                 <p style={{ color: theme.textSecondary }}>No lost items reported yet.</p>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                  {lostItems.slice(0, 6).map((item) => (
-                    <div key={item._id} style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      borderRadius: '12px',
-                      border: '1px solid ' + theme.borderColor,
-                      overflow: 'hidden',
-                      transition: 'all 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'translateY(-4px)';
-                      e.target.style.boxShadow = '0 12px 40px rgba(0,0,0,0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = 'none';
-                    }}>
-                      {item.imageUrl ? (
-                        <div 
-                          style={{
-                            height: '180px',
-                            background: `url(${item.imageUrl}) center/cover`,
-                            cursor: 'pointer',
-                            position: 'relative',
-                          }}
-                          onClick={() => setSelectedImage(item.imageUrl)}
-                        >
-                          <div style={{
-                            position: 'absolute',
-                            top: '10px',
-                            right: '10px',
-                            padding: '4px 12px',
-                            borderRadius: '12px',
-                            background: 'rgba(255,107,107,0.9)',
-                            color: 'white',
-                            fontSize: '11px',
-                            fontWeight: '600',
-                          }}>
-                            LOST
+                  {lostItems.slice(0, 6).map((item) => {
+                    const imageSrc = getImageSrc(item);
+                    return (
+                      <div key={item._id} style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        borderRadius: '12px',
+                        border: '1px solid ' + theme.borderColor,
+                        overflow: 'hidden',
+                        transition: 'all 0.3s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-4px)';
+                        e.target.style.boxShadow = '0 12px 40px rgba(0,0,0,0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = 'none';
+                      }}>
+                        {imageSrc ? (
+                          <div 
+                            style={{
+                              height: '180px',
+                              background: `url(${imageSrc}) center/cover`,
+                              cursor: 'pointer',
+                              position: 'relative',
+                            }}
+                            onClick={() => setSelectedImage(imageSrc)}
+                          >
+                            <div style={{
+                              position: 'absolute',
+                              top: '10px',
+                              right: '10px',
+                              padding: '4px 12px',
+                              borderRadius: '12px',
+                              background: 'rgba(255,107,107,0.9)',
+                              color: 'white',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                            }}>
+                              LOST
+                            </div>
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '10px',
+                              right: '10px',
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              background: 'rgba(0,0,0,0.6)',
+                              color: 'white',
+                              fontSize: '11px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}>
+                              <Eye size={14} /> View
+                            </div>
                           </div>
+                        ) : (
                           <div style={{
-                            position: 'absolute',
-                            bottom: '10px',
-                            right: '10px',
-                            padding: '4px 10px',
-                            borderRadius: '12px',
-                            background: 'rgba(0,0,0,0.6)',
-                            color: 'white',
-                            fontSize: '11px',
+                            height: '180px',
+                            background: 'rgba(255,255,255,0.05)',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            justifyContent: 'center',
+                            color: theme.textSecondary,
+                            fontSize: '14px',
                           }}>
-                            <Eye size={14} /> View
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{
-                          height: '180px',
-                          background: 'rgba(255,255,255,0.05)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: theme.textSecondary,
-                          fontSize: '14px',
-                        }}>
-                          No Image Available
-                        </div>
-                      )}
-                      <div style={{ padding: '16px' }}>
-                        <h4 style={{ color: theme.textColor, margin: '0 0 4px 0', fontSize: '16px' }}>{item.title}</h4>
-                        <p style={{ color: theme.textSecondary, fontSize: '13px', margin: '4px 0' }}>
-                          {item.description?.substring(0, 100)}{item.description?.length > 100 ? '...' : ''}
-                        </p>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                          <span style={{ fontSize: '12px', color: theme.textSecondary }}>
-                            📍 {item.location}
-                          </span>
-                          <span style={{ fontSize: '12px', color: theme.textSecondary }}>
-                            {new Date(item.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {item.make && (
-                          <div style={{ fontSize: '12px', color: theme.textSecondary, marginTop: '4px' }}>
-                            {item.make} {item.model}
+                            No Image Available
                           </div>
                         )}
+                        <div style={{ padding: '16px' }}>
+                          <h4 style={{ color: theme.textColor, margin: '0 0 4px 0', fontSize: '16px' }}>{item.title}</h4>
+                          <p style={{ color: theme.textSecondary, fontSize: '13px', margin: '4px 0' }}>
+                            {item.description?.substring(0, 100)}{item.description?.length > 100 ? '...' : ''}
+                          </p>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                            <span style={{ fontSize: '12px', color: theme.textSecondary }}>
+                              📍 {item.location}
+                            </span>
+                            <span style={{ fontSize: '12px', color: theme.textSecondary }}>
+                              {new Date(item.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {item.make && (
+                            <div style={{ fontSize: '12px', color: theme.textSecondary, marginTop: '4px' }}>
+                              {item.make} {item.model}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
 
-            {/* Recently Found Items - with Claim button disabled if already claimed */}
+            {/* Recently Found Items */}
             <div style={{
               padding: '20px',
               background: theme.cardBg,
@@ -1118,6 +1131,7 @@ function StudentDashboard({ user, onLogout }) {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
                   {foundItems.slice(0, 6).map((item) => {
                     const claimed = isItemClaimed(item);
+                    const imageSrc = getImageSrc(item);
                     return (
                       <div key={item._id} style={{
                         background: claimed ? theme.claimedBg : 'rgba(255,255,255,0.03)',
@@ -1134,15 +1148,15 @@ function StudentDashboard({ user, onLogout }) {
                         e.target.style.transform = 'translateY(0)';
                         e.target.style.boxShadow = 'none';
                       }}>
-                        {item.imageUrl ? (
+                        {imageSrc ? (
                           <div 
                             style={{
                               height: '180px',
-                              background: `url(${item.imageUrl}) center/cover`,
+                              background: `url(${imageSrc}) center/cover`,
                               cursor: 'pointer',
                               position: 'relative',
                             }}
-                            onClick={() => setSelectedImage(item.imageUrl)}
+                            onClick={() => setSelectedImage(imageSrc)}
                           >
                             <div style={{
                               position: 'absolute',
@@ -1296,6 +1310,7 @@ function StudentDashboard({ user, onLogout }) {
               ) : (
                 items.map((item) => {
                   const claimed = isItemClaimed(item);
+                  const imageSrc = getImageSrc(item);
                   return (
                     <div key={item._id} style={{
                       background: claimed ? theme.claimedBg : 'rgba(255,255,255,0.03)',
@@ -1312,15 +1327,15 @@ function StudentDashboard({ user, onLogout }) {
                       e.target.style.transform = 'translateY(0)';
                       e.target.style.boxShadow = 'none';
                     }}>
-                      {item.imageUrl ? (
+                      {imageSrc ? (
                         <div 
                           style={{
                             height: '180px',
-                            background: `url(${item.imageUrl}) center/cover`,
+                            background: `url(${imageSrc}) center/cover`,
                             cursor: 'pointer',
                             position: 'relative',
                           }}
-                          onClick={() => setSelectedImage(item.imageUrl)}
+                          onClick={() => setSelectedImage(imageSrc)}
                         >
                           <div style={{
                             position: 'absolute',
@@ -1788,9 +1803,9 @@ function StudentDashboard({ user, onLogout }) {
               border: '1px solid ' + theme.borderColor,
             }}>
               <h3 style={{ color: theme.textColor, marginTop: 0 }}>Claim Item</h3>
-              {selectedItem.imageUrl && (
+              {selectedItem.imageData && (
                 <img 
-                  src={selectedItem.imageUrl} 
+                  src={`data:image/jpeg;base64,${selectedItem.imageData}`} 
                   alt={selectedItem.title} 
                   style={{ 
                     width: '100%', 

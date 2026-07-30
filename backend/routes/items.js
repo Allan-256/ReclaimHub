@@ -1,38 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const Item = require('../models/Item');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// Configure multer for image upload
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'item-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: function (req, file, cb) {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    cb(new Error('Only image files are allowed'));
-  }
-});
 
 const auth = async (req, res, next) => {
   try {
@@ -61,62 +29,54 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single item
-router.get('/:id', async (req, res) => {
+// Create item with Base64 image
+router.post('/', auth, async (req, res) => {
   try {
-    const item = await Item.findById(req.params.id).populate('reportedBy', 'name email studentId');
-    if (!item) {
-      return res.status(404).json({ message: 'Item not found' });
-    }
-    res.json({ item });
-  } catch (error) {
-    console.error('Get item error:', error);
-    res.status(500).json({ message: 'Server error: ' + error.message });
-  }
-});
+    const { 
+      title, description, category, location, status,
+      serialNumber, make, model, type, resolution, color, imeiNumber,
+      dateFound, dateLost, imageData 
+    } = req.body;
 
-// Create item with image upload
-router.post('/', auth, upload.single('image'), async (req, res) => {
-  try {
-    console.log('Creating item...');
-    console.log('Body:', req.body);
-    console.log('File:', req.file);
-    
+    // Validate required fields
+    if (!title || !description || !location) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: title, description, location are required' 
+      });
+    }
+
     const itemData = {
-      title: req.body.title,
-      description: req.body.description,
-      category: req.body.category || 'Other',
-      location: req.body.location,
-      status: req.body.status || 'lost',
+      title,
+      description,
+      category: category || 'Other',
+      location,
+      status: status || 'lost',
       reportedBy: req.userId,
-      serialNumber: req.body.serialNumber || '',
-      make: req.body.make || '',
-      model: req.body.model || '',
-      type: req.body.type || '',
-      resolution: req.body.resolution || '',
-      color: req.body.color || '',
-      imeiNumber: req.body.imeiNumber || '',
+      serialNumber: serialNumber || '',
+      make: make || '',
+      model: model || '',
+      type: type || '',
+      resolution: resolution || '',
+      color: color || '',
+      imeiNumber: imeiNumber || '',
     };
 
-    if (req.body.dateFound) {
-      itemData.dateFound = new Date(req.body.dateFound);
+    if (dateFound) {
+      itemData.dateFound = new Date(dateFound);
     }
-    if (req.body.dateLost) {
-      itemData.dateLost = new Date(req.body.dateLost);
+    if (dateLost) {
+      itemData.dateLost = new Date(dateLost);
     }
 
-    // IMPORTANT: Save the image URL
-    if (req.file) {
-      itemData.imageUrl = '/uploads/' + req.file.filename;
-      console.log('Image URL saved:', itemData.imageUrl);
-    } else {
-      console.log('No file uploaded');
+    // Store Base64 image directly in MongoDB
+    if (imageData && imageData.length > 0) {
+      itemData.imageData = imageData;
+      itemData.imageUrl = `data:image/jpeg;base64,${imageData}`;
     }
 
     const item = new Item(itemData);
     await item.save();
     
-    console.log('Item created with imageUrl:', item.imageUrl);
     res.status(201).json({ item });
   } catch (error) {
     console.error('Create item error:', error);
@@ -162,13 +122,6 @@ router.delete('/:id', auth, async (req, res) => {
     const item = await Item.findById(req.params.id);
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
-    }
-
-    if (item.imageUrl) {
-      const imagePath = path.join(__dirname, '..', item.imageUrl);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
     }
 
     await item.deleteOne();
