@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { GridFSBucket, ObjectId } from "mongodb";
+import { GridFSBucket } from "mongodb";
 
 export async function POST(req: Request) {
   try {
@@ -26,8 +26,10 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(bytes);
 
     const uploadStream = bucket.openUploadStream(file.name, {
-      contentType: file.type,
-      metadata: { uploadedAt: new Date().toISOString() },
+      metadata: {
+        contentType: file.type,
+        uploadedAt: new Date().toISOString(),
+      },
     });
 
     const id = uploadStream.id;

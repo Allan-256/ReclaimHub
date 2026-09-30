@@ -22,6 +22,10 @@ export async function GET(
     }
 
     const file = files[0];
+    const contentType =
+      (file.metadata && (file.metadata.contentType as string)) ||
+      file.contentType ||
+      "image/jpeg";
 
     const downloadStream = bucket.openDownloadStream(new ObjectId(id));
 
@@ -33,7 +37,7 @@ export async function GET(
 
     return new NextResponse(buffer as unknown as BodyInit, {
       headers: {
-        "Content-Type": file.contentType || "image/jpeg",
+        "Content-Type": contentType,
         "Cache-Control": "public, max-age=31536000, immutable",
       },
     });
